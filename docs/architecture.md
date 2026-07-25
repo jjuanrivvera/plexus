@@ -1,7 +1,10 @@
 # Architecture
 
-Plexus is two layers over one private network: **plexus** (observe / control / launch) and **edc**
-(inject). Each agent session sits in the middle — registered in plexus, reachable by edc.
+The problem Plexus solves: you run coding-agent sessions on several machines and have no single place
+to see them, reach their terminals, or feed them events. Plexus is two layers over one private network
+that fix exactly that — **`plexus`** (observe / control / launch) and **`edc`** (inject). An **agent
+session** (one running Claude Code, Codex, or OpenCode) sits in the middle: registered in `plexus`,
+reachable by `edc`. (**Plexus** capitalized is the suite; `plexus` lowercase is one of its two binaries.)
 
 ## Topology
 

@@ -1,8 +1,14 @@
 # Command reference
 
+Two binaries, two command families. **`plexus`** is one binary with two groups of verbs — the
+ergonomic *launch & attach* verbs (`claude`, `attach`, `kill`, …) and the underlying *registry &
+server* verbs (`serve`, `register`, `get`, …). **`edc`** is the separate injector binary. New to the
+vocabulary? See [Concepts](index.md#concepts).
+
 ## `plexus` — launch & attach
 
-`plexus` is the binary; these are the ergonomic verbs.
+The ergonomic verbs for starting sessions and reaching them — the ones you type by hand day to day
+(the [registry & server](#plexus-registry-server) verbs below are the same binary, usually run by hooks).
 
 | Command | Does |
 |---|---|

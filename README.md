@@ -16,6 +16,30 @@ sessions as turns. Together they are **Plexus**.
 The registry is a read-mostly blackboard (choreography, not orchestration): sessions write their own row,
 a reader queries and decides.
 
+## Quick start (one machine)
+
+```sh
+# 1. install both binaries + scaffold config (generates a token and an inject secret)
+curl -fsSL https://raw.githubusercontent.com/jjuanrivvera/plexus/main/plexus.sh | sh
+
+# 2. plexus.sh already wrote ~/.config/plexus/env with a generated PLEXUS_TOKEN — check it
+cat ~/.config/plexus/env        # PLEXUS_URL=http://127.0.0.1:8799, PLEXUS_TOKEN=…, PLEXUS_HOST=…
+
+# 3. run the registry (fails closed without PLEXUS_TOKEN, which the env file supplies)
+plexus serve --bind 127.0.0.1:8799 &
+
+# 4. launch an agent into the cockpit
+plexus claude ~/code/api
+
+# 5. open the cockpit (xdg-open on Linux)
+open "$PLEXUS_URL/ui"
+```
+
+That gets you *see + launch + attach* on one box. Turning a session **injectable** (the channel
+plugin + a machine-level allowlist) and going multi-machine are in the
+[full docs](https://jjuanrivvera.github.io/plexus/). Prefer to install just this binary (no `edc`,
+no config scaffolding)? See [Install](#install) below.
+
 ## Architecture
 
 ```
@@ -136,15 +160,15 @@ machine, never in the store. `serve` fails closed if the token is unset.
 
 ## Claude Code hooks
 
-Copy `hooks/*.sh` somewhere stable (e.g. `~/.claude/hooks/presence/`), make them executable, and
+Copy `hooks/*.sh` somewhere stable (e.g. `~/.claude/hooks/plexus/`), make them executable, and
 add to `settings.json`:
 
 ```json
 {
   "hooks": {
-    "SessionStart": [ { "hooks": [ { "type": "command", "command": "~/.claude/hooks/presence/session-start.sh" } ] } ],
-    "PostToolUse":  [ { "hooks": [ { "type": "command", "command": "~/.claude/hooks/presence/post-tool-use.sh" } ] } ],
-    "SessionEnd":   [ { "hooks": [ { "type": "command", "command": "~/.claude/hooks/presence/session-end.sh" } ] } ]
+    "SessionStart": [ { "hooks": [ { "type": "command", "command": "~/.claude/hooks/plexus/session-start.sh" } ] } ],
+    "PostToolUse":  [ { "hooks": [ { "type": "command", "command": "~/.claude/hooks/plexus/post-tool-use.sh" } ] } ],
+    "SessionEnd":   [ { "hooks": [ { "type": "command", "command": "~/.claude/hooks/plexus/session-end.sh" } ] } ]
   }
 }
 ```
@@ -169,12 +193,15 @@ recovers on its next tick.
 
 ## Install
 
-From a GitHub release (checksum-verified, no Go needed):
+Most people want **both** binaries plus config scaffolding — use `plexus.sh` (see
+[Quick start](#quick-start-one-machine)). To install **just this binary** (no `edc`, no config
+written), from a GitHub release (checksum-verified, no Go needed):
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/jjuanrivvera/plexus/main/install.sh | sh
 ```
 
+This also drops a `presence` back-compat symlink so pre-rename hooks and units keep resolving.
 From source: `go build -o plexus .` (Go 1.25+, `CGO_ENABLED=0`).
 
 ## Claude Code skill
@@ -190,7 +217,7 @@ npx skills add jjuanrivvera/plexus --global   # for all projects
 
 ## Deploy (server)
 
-systemd user unit at `~/.config/systemd/user/presence.service`:
+systemd user unit at `~/.config/systemd/user/plexus.service`:
 
 ```ini
 [Unit]

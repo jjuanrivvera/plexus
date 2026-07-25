@@ -15,14 +15,22 @@ The shape is deliberately simple: **one agnostic emitter, one adapter per agent.
 ## The emitter — `POST /inject`
 
 A tool (a cron, a watcher, another agent) sends the same JSON to a local, token-authed endpoint. The
-caller is **identical** whether the session is Claude, Codex, or OpenCode.
+caller is **identical** whether the session is Claude, Codex, or OpenCode. It needs two things: the
+session's **port** (with `inject_port: "auto"`, each session gets its own — read it from that session's
+state file) and the **secret** (from `~/.config/edc/config.json`).
 
 ```sh
+PORT=$(jq -r .port ~/.local/state/edc/*.json | head -1)   # this session's inject port
+SECRET=$(jq -r .inject_secret ~/.config/edc/config.json)  # the shared inject secret
 curl -X POST "http://127.0.0.1:$PORT/inject" \
-  -H "Authorization: Bearer $EDC_INJECT_SECRET" \
+  -H "Authorization: Bearer $SECRET" \
   -d '{"source":"slack","event":"dm","text":"the deploy failed","context":{"run":"1234"}}'
 # → 202 {"ok":true}   the event becomes a turn in the live session
 ```
+
+(New to *turn*, *inject*, or *channel*? See [Concepts](index.md#concepts). A `202` means `edc`
+accepted and emitted the event; for Claude that isn't the same as *delivered* — the channel must also
+be authorized, see [Deploying an injectable session](#deploying-an-injectable-session) below.)
 
 | Field | |
 |---|---|

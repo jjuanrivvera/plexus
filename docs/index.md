@@ -2,11 +2,13 @@
 
 **One nervous system for your coding agents, across your machines.**
 
-`plexus` is two small, self-hosted Go tools that work together:
+**Plexus** lets you watch, steer, and feed events to coding-agent sessions (Claude Code, Codex,
+OpenCode) running across your machines. The suite is **Plexus**; it's two small, self-hosted Go
+binaries that work together — mind the capitalization, one of them is also called `plexus`:
 
-- **[plexus](plexus.md)** — the *eyes and hands*. A session **registry**, a web **cockpit** with each
+- **[`plexus`](plexus.md)** — the *eyes and hands*. A session **registry**, a web **cockpit** with each
   session's live terminal, and a **launcher** for starting agents you can attach to from anywhere.
-- **[edc](edc.md)** — the *input*. A uniform `/inject` endpoint that turns an external event (a cron, a
+- **[`edc`](edc.md)** — the *input*. A uniform `/inject` endpoint that turns an external event (a cron, a
   watcher, a Slack message, another agent) into a **turn** inside a running session.
 
 They're orthogonal and don't know each other's internals — they meet at the session. An event enters a
@@ -19,6 +21,22 @@ flowchart LR
   S -->|register / attach| P["plexus<br/>registry + cockpit"]
   H["you (any device)"] -->|watch · type · interrupt| P
 ```
+
+## Concepts
+
+A few load-bearing terms, defined once — they recur across every page:
+
+| Term | Meaning |
+|---|---|
+| **session** | one running coding agent (Claude Code, Codex, or OpenCode) |
+| **turn** | one message a session processes, exactly as if a human had typed it |
+| **inject** | hand a session an external event so it arrives as a turn — `edc`'s whole job |
+| **channel** | the Claude Code capability (`claude/channel`) that lets `edc` push a turn in |
+| **registry** | the list of live sessions `plexus serve` keeps (one row each) |
+| **cockpit** | the `plexus serve` web dashboard (`/ui`): the fleet plus each session's terminal |
+| **attach** | open a session's live terminal — the cockpit reverse-proxies your browser into it |
+| **ttyd** | a terminal-over-HTTP server; Plexus runs one per session so the cockpit can attach |
+| **edc** | "Event-Driven Coding-agents" — the injector binary |
 
 ## Two independent binaries
 
@@ -57,18 +75,24 @@ plexus watch                       # live full-screen cockpit (TUI)
 # the web cockpit (installable PWA)
 open "$PLEXUS_URL/ui"          # sidebar of sessions + each one's live terminal
 
-# wake a session with an external event
+# wake a session with an external event — the port comes from that session's edc
+# state file, the secret from ~/.config/edc/config.json
+PORT=$(jq -r .port ~/.local/state/edc/*.json | head -1)
 curl -X POST "http://127.0.0.1:$PORT/inject" \
-  -H "Authorization: Bearer $SECRET" \
+  -H "Authorization: Bearer $(jq -r .inject_secret ~/.config/edc/config.json)" \
   -d '{"source":"cron","event":"nightly","text":"…"}'   # → a turn in that session
 ```
 
+See [Setup](setup.md) for the from-zero install, then [edc](edc.md) for how injection is wired.
+
 ## Where to go next
 
+- **[Setup & requirements](setup.md)** — from one laptop to many machines; the from-zero install.
+- **[`plexus`](plexus.md)** — the registry, cockpit, and launcher in depth.
+- **[`edc`](edc.md)** — how event injection works and how to wire it.
 - **[Architecture](architecture.md)** — how the two tools compose, and the topology.
 - **[Agents](agents.md)** — what each agent supports and how it's wired.
-- **[Setup & requirements](setup.md)** — from one laptop to many machines; what's actually required.
-- **[Command reference](commands.md)** — every `plexus` / `plexus` / `edc` verb.
+- **[Command reference](commands.md)** — every `plexus` and `edc` verb.
 
 !!! note "Design intent"
     `plexus` is built for a developer running a handful of long-lived agent sessions across machines they

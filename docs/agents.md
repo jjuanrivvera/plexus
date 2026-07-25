@@ -1,7 +1,9 @@
 # Agents
 
-Plexus is agent-agnostic by design: every agent goes through the same two plexus calls and the same
-`/inject` contract. What differs is *where* registration is wired and *how* the injected turn is received.
+Plexus drives three coding agents — Claude Code, Codex, and OpenCode — through one registry and one
+injection contract. It's agent-agnostic by design: every agent goes through the same two `plexus` calls
+(register + spawn a terminal) and the same `edc` `/inject` contract. What differs is *where* registration
+is wired and *how* the injected turn is received. (See [Concepts](index.md#concepts) for the terms.)
 
 ## Support matrix
 
@@ -26,8 +28,11 @@ agent has no native system marker.
   `plexus register` (`agent=claude`); `session-end.sh` deregisters; a keepalive heartbeats idle sessions.
 - **Injection:** the `edc` **channel** — an MCP stdio server declaring `claude/channel`. Events arrive as
   native `notifications/claude/channel` turns with `meta.source="system"`.
-- **Install:** the `event-driven-claude` plugin (`claude plugin install …`) and the plexus hooks in
-  `settings.json`.
+- **Install:** two supported paths (see [Setup](setup.md#one-plugin-both-tools)) — the **combined
+  Plexus plugin** (`plexus@jjuanrivvera-plexus`, registration hooks + injection channel in one), or
+  **à la carte** (the `event-driven-claude@jjuanrivvera-edc` plugin for the channel + the plexus hooks
+  for registration). Either way the hooks live in `~/.claude/settings.json`; the channel allowlist lives
+  in the OS managed-settings file (not `settings.json`) — Setup has the exact snippets.
 
 ### Codex
 

@@ -26,8 +26,9 @@ Both tools are single static Go binaries with checksum-verified releases.
 
 ### Both at once (recommended)
 
-`plexus.sh` installs `plexus` and `edc`, drops the `plexus` symlink, and scaffolds
-config for both (generating a registry token and an inject secret the first time):
+`plexus.sh` installs `plexus` and `edc`, drops a `presence` back-compat symlink (so
+pre-rename hooks and units keep resolving), and scaffolds config for both (generating a
+registry token and an inject secret the first time):
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/jjuanrivvera/plexus/main/plexus.sh | sh
@@ -40,7 +41,7 @@ It never overwrites an existing config, so it's safe to re-run to upgrade.
 The two binaries are independent — install only what you need:
 
 ```sh
-# plexus (registry + cockpit + launcher; also installs the `plexus` symlink)
+# plexus (registry + cockpit + launcher; also drops the `presence` back-compat symlink)
 curl -fsSL https://raw.githubusercontent.com/jjuanrivvera/plexus/main/install.sh | sh
 
 # edc (event injection — usable entirely on its own, no plexus required)
@@ -67,12 +68,52 @@ claude plugin marketplace add jjuanrivvera/plexus
 claude plugin install plexus@jjuanrivvera-plexus
 ```
 
-Then allow the injection channel by adding it to `allowedChannelPlugins` in your Claude
-settings (`~/.claude/settings.json`) — `plexus.sh` prints the exact snippet:
+!!! note "Prefer injection only? Use `edc` standalone"
+    If you want event injection without the registry/cockpit, install the `edc`-alone plugin instead
+    (`claude plugin install event-driven-claude@jjuanrivvera-edc`) and use the matching allowlist
+    entry and `--channels` value below. Everything else on this page is identical — just swap the
+    `{marketplace, plugin}` pair. See the [`edc` README](https://github.com/jjuanrivvera/edc).
 
-```json
+The plugin wires **two things** into a session, and they live in **two different files** — this trips
+everyone up, so it's spelled out:
+
+**1. Hooks (registration) → `~/.claude/settings.json`.** The install adds the SessionStart/PostToolUse/
+SessionEnd hooks here. This is your normal user settings file.
+
+**2. Channel (injection) → the OS *managed-settings* file (requires admin).** For an *installed*
+plugin, Claude Code reads the channel allowlist **only** from managed settings — your
+`~/.claude/settings.json` is ignored for this by design, so a process running as you can't
+self-authorize an injection channel. Add the plugin to `allowedChannelPlugins` there (with `sudo`):
+
+| OS | managed-settings path |
+|---|---|
+| macOS | `/Library/Application Support/ClaudeCode/managed-settings.json` |
+| Linux | `/etc/claude-code/managed-settings.json` |
+| Windows | `C:\ProgramData\ClaudeCode\managed-settings.json` |
+
+```sh
+# Linux shown; on macOS use the path above. The value is an ARRAY of {marketplace, plugin} objects.
+sudo mkdir -p /etc/claude-code && sudo tee /etc/claude-code/managed-settings.json >/dev/null <<'JSON'
 { "allowedChannelPlugins": [ { "marketplace": "jjuanrivvera-plexus", "plugin": "plexus" } ] }
+JSON
 ```
+
+!!! warning "The one thing that silently breaks injection"
+    If the channel allowlist is missing (or you put it in `~/.claude/settings.json`), `/inject` still
+    returns `202` but **the turn never arrives** — Claude Code drops it. That `202`-but-nothing-happens
+    dead-end is almost always this. Verify with the plugin's MCP log showing `Channel notifications
+    registered` (vs `skipped`).
+
+**3. Request the channel per session (every launch).** The allowlist alone isn't enough — each session
+must also opt in with `--channels`. `plexus claude` does **not** add this for you; pass it through with
+`--`:
+
+```sh
+plexus claude ~/code/api -- --channels "plugin:plexus@jjuanrivvera-plexus"
+# edc-standalone: --channels "plugin:event-driven-claude@jjuanrivvera-edc"
+```
+
+A fresh session prints a `Channels (experimental) … inject directly` line when the capability registered.
 
 !!! note "Codex & OpenCode"
     **Codex** has its own equivalent plugin in the `edc` repo (`.codex-plugin/` — registration
@@ -96,24 +137,29 @@ PLEXUS_HOST=<label>                      # this machine's label, e.g. laptop
 { "inject_secret": "<secret>", "inject_port": "auto", "inject_bind": "0.0.0.0" }
 ```
 
-`inject_bind` defaults to `127.0.0.1` (local injection only). Set it to `0.0.0.0` to let an
-emitter on another machine reach the session over your private network — the listener stays
-**fail-closed** (no valid secret, no injection), so the bind widens reachability, not trust.
-Bind to a specific private IP instead of `0.0.0.0` if you want to exclude other local interfaces.
+The `edc` binary's own default for `inject_bind`, when the key is absent, is `127.0.0.1` (local
+injection only). The sample above is what `plexus.sh` **scaffolds** — `0.0.0.0`, so cross-machine
+injection works out of the box. That's safe because the listener is **fail-closed** (no valid secret,
+no injection), so the wider bind adds reachability, not trust. For a single machine, or to exclude
+other local interfaces, set it to `127.0.0.1` or a specific private IP.
 
 Generate secrets with `openssl rand -hex 32`. Keep them out of version control.
 
 ## Run the registry
 
-On the always-on host, run `plexus serve` as a service. A systemd user unit:
+On the always-on host, run `plexus serve` as a service. A systemd user unit (pulling the token from
+the env file `plexus.sh` scaffolded, matching the [plexus README](https://github.com/jjuanrivvera/plexus#deploy-server)):
 
 ```ini
 [Service]
-Environment=PLEXUS_BIND=127.0.0.1:8799     # or a private IP:port for multi-machine
-Environment=PLEXUS_TOKEN=<secret>
+EnvironmentFile=%h/.config/plexus/env      # PLEXUS_URL / PLEXUS_TOKEN / PLEXUS_HOST
+Environment=PLEXUS_BIND=127.0.0.1:8799     # bind address (or a private IP:port for multi-machine)
 ExecStart=%h/.local/bin/plexus serve
 Restart=always
 ```
+
+On **macOS** there's no systemd — run `plexus serve` under a launchd LaunchAgent (or any process
+manager), with the same env file and command.
 
 Then, on any dev machine, launch an agent and it appears in the cockpit at `PLEXUS_URL/ui`:
 

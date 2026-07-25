@@ -1,7 +1,11 @@
 # plexus
 
-A single Go binary — installed as `plexus` — that plays three roles over one shared
-SQLite registry. It is Plexus's *eyes and hands*: see every session, attach to it, launch new ones.
+`plexus` (lowercase — one of **Plexus**'s two binaries) is a single Go tool that plays three roles
+over one shared SQLite registry. It is Plexus's *eyes and hands*: see every session, attach to it,
+launch new ones. Its partner `edc` feeds those sessions events — see [edc](edc.md).
+
+New to the terms below (*session*, *inject*, *ttyd*, *attach*)? They're defined once in
+[Concepts](index.md#concepts).
 
 ## Role 1 — Registry
 
@@ -29,7 +33,8 @@ deterministically.
 `GET /ui` serves an installable PWA: a **sidebar** of live sessions (blocked-first, state-colored) and, on
 the right, the **live terminal** of the selected session.
 
-- **One login.** You paste the token once; it's stored as a cookie.
+- **One login.** You paste the token once; the browser keeps it — a `plexus_auth` login cookie for the
+  attach proxy, plus `localStorage` for the dashboard's own `/list` calls.
 - **Attach without a second prompt.** Each session runs a per-session [`ttyd`](https://github.com/tsl0922/ttyd)
   web terminal. Plexus **reverse-proxies** it at `/attach/<session_id>/`, injecting the terminal's own
   basic-auth — so you never see a second prompt and the terminal is never exposed raw on the network.
