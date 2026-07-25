@@ -917,12 +917,19 @@ alone, or both together. When both are present, <code>edc</code>'s daemon <em>al
 </div>
 <h2 id="the-emitter-post-inject">The emitter — <code>POST /inject</code><a class="headerlink" href="#the-emitter-post-inject" title="Permanent link">&para;</a></h2>
 <p>A tool (a cron, a watcher, another agent) sends the same JSON to a local, token-authed endpoint. The
-caller is <strong>identical</strong> whether the session is Claude, Codex, or OpenCode.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://127.0.0.1:</span><span class="nv">$PORT</span><span class="s2">/inject&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$EDC_INJECT_SECRET</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;source&quot;:&quot;slack&quot;,&quot;event&quot;:&quot;dm&quot;,&quot;text&quot;:&quot;the deploy failed&quot;,&quot;context&quot;:{&quot;run&quot;:&quot;1234&quot;}}&#39;</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># → 202 {&quot;ok&quot;:true}   the event becomes a turn in the live session</span>
+caller is <strong>identical</strong> whether the session is Claude, Codex, or OpenCode. It needs two things: the
+session's <strong>port</strong> (with <code>inject_port: "auto"</code>, each session gets its own — read it from that session's
+state file) and the <strong>secret</strong> (from <code>~/.config/edc/config.json</code>).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">PORT</span><span class="o">=</span><span class="k">$(</span>jq<span class="w"> </span>-r<span class="w"> </span>.port<span class="w"> </span>~/.local/state/edc/*.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="k">)</span><span class="w">   </span><span class="c1"># this session&#39;s inject port</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nv">SECRET</span><span class="o">=</span><span class="k">$(</span>jq<span class="w"> </span>-r<span class="w"> </span>.inject_secret<span class="w"> </span>~/.config/edc/config.json<span class="k">)</span><span class="w">  </span><span class="c1"># the shared inject secret</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://127.0.0.1:</span><span class="nv">$PORT</span><span class="s2">/inject&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$SECRET</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;source&quot;:&quot;slack&quot;,&quot;event&quot;:&quot;dm&quot;,&quot;text&quot;:&quot;the deploy failed&quot;,&quot;context&quot;:{&quot;run&quot;:&quot;1234&quot;}}&#39;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># → 202 {&quot;ok&quot;:true}   the event becomes a turn in the live session</span>
 </code></pre></div>
+<p>(New to <em>turn</em>, <em>inject</em>, or <em>channel</em>? See <a href="../#concepts">Concepts</a>. A <code>202</code> means <code>edc</code>
+accepted and emitted the event; for Claude that isn't the same as <em>delivered</em> — the channel must also
+be authorized, see <a href="#deploying-an-injectable-session">Deploying an injectable session</a> below.)</p>
 <table>
 <thead>
 <tr>

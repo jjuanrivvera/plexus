@@ -926,8 +926,11 @@
 
 
 <h1 id="plexus">plexus<a class="headerlink" href="#plexus" title="Permanent link">&para;</a></h1>
-<p>A single Go binary — installed as <code>plexus</code> — that plays three roles over one shared
-SQLite registry. It is Plexus's <em>eyes and hands</em>: see every session, attach to it, launch new ones.</p>
+<p><code>plexus</code> (lowercase — one of <strong>Plexus</strong>'s two binaries) is a single Go tool that plays three roles
+over one shared SQLite registry. It is Plexus's <em>eyes and hands</em>: see every session, attach to it,
+launch new ones. Its partner <code>edc</code> feeds those sessions events — see <a href="../edc/">edc</a>.</p>
+<p>New to the terms below (<em>session</em>, <em>inject</em>, <em>ttyd</em>, <em>attach</em>)? They're defined once in
+<a href="../#concepts">Concepts</a>.</p>
 <h2 id="role-1-registry">Role 1 — Registry<a class="headerlink" href="#role-1-registry" title="Permanent link">&para;</a></h2>
 <p><code>plexus serve</code> runs the HTTP service on the always-on host (a private address or loopback only,
 bearer-authed). It keeps one row per session and auto-prunes stale ones.</p>
@@ -977,7 +980,8 @@ deterministically.</p>
 <p><code>GET /ui</code> serves an installable PWA: a <strong>sidebar</strong> of live sessions (blocked-first, state-colored) and, on
 the right, the <strong>live terminal</strong> of the selected session.</p>
 <ul>
-<li><strong>One login.</strong> You paste the token once; it's stored as a cookie.</li>
+<li><strong>One login.</strong> You paste the token once; the browser keeps it — a <code>plexus_auth</code> login cookie for the
+  attach proxy, plus <code>localStorage</code> for the dashboard's own <code>/list</code> calls.</li>
 <li><strong>Attach without a second prompt.</strong> Each session runs a per-session <a href="https://github.com/tsl0922/ttyd"><code>ttyd</code></a>
   web terminal. Plexus <strong>reverse-proxies</strong> it at <code>/attach/&lt;session_id&gt;/</code>, injecting the terminal's own
   basic-auth — so you never see a second prompt and the terminal is never exposed raw on the network.</li>

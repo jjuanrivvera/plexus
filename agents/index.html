@@ -960,8 +960,10 @@
 
 
 <h1 id="agents">Agents<a class="headerlink" href="#agents" title="Permanent link">&para;</a></h1>
-<p>Plexus is agent-agnostic by design: every agent goes through the same two plexus calls and the same
-<code>/inject</code> contract. What differs is <em>where</em> registration is wired and <em>how</em> the injected turn is received.</p>
+<p>Plexus drives three coding agents — Claude Code, Codex, and OpenCode — through one registry and one
+injection contract. It's agent-agnostic by design: every agent goes through the same two <code>plexus</code> calls
+(register + spawn a terminal) and the same <code>edc</code> <code>/inject</code> contract. What differs is <em>where</em> registration
+is wired and <em>how</em> the injected turn is received. (See <a href="../#concepts">Concepts</a> for the terms.)</p>
 <h2 id="support-matrix">Support matrix<a class="headerlink" href="#support-matrix" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1026,8 +1028,11 @@ agent has no native system marker.</p>
   <code>plexus register</code> (<code>agent=claude</code>); <code>session-end.sh</code> deregisters; a keepalive heartbeats idle sessions.</li>
 <li><strong>Injection:</strong> the <code>edc</code> <strong>channel</strong> — an MCP stdio server declaring <code>claude/channel</code>. Events arrive as
   native <code>notifications/claude/channel</code> turns with <code>meta.source="system"</code>.</li>
-<li><strong>Install:</strong> the <code>event-driven-claude</code> plugin (<code>claude plugin install …</code>) and the plexus hooks in
-  <code>settings.json</code>.</li>
+<li><strong>Install:</strong> two supported paths (see <a href="../setup/#one-plugin-both-tools">Setup</a>) — the <strong>combined
+  Plexus plugin</strong> (<code>plexus@jjuanrivvera-plexus</code>, registration hooks + injection channel in one), or
+  <strong>à la carte</strong> (the <code>event-driven-claude@jjuanrivvera-edc</code> plugin for the channel + the plexus hooks
+  for registration). Either way the hooks live in <code>~/.claude/settings.json</code>; the channel allowlist lives
+  in the OS managed-settings file (not <code>settings.json</code>) — Setup has the exact snippets.</li>
 </ul>
 <h3 id="codex">Codex<a class="headerlink" href="#codex" title="Permanent link">&para;</a></h3>
 <ul>

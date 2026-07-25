@@ -1053,14 +1053,15 @@ so naturally (a stable private IP per machine), but it's interchangeable.</p>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <p>Both tools are single static Go binaries with checksum-verified releases.</p>
 <h3 id="both-at-once-recommended">Both at once (recommended)<a class="headerlink" href="#both-at-once-recommended" title="Permanent link">&para;</a></h3>
-<p><code>plexus.sh</code> installs <code>plexus</code> and <code>edc</code>, drops the <code>plexus</code> symlink, and scaffolds
-config for both (generating a registry token and an inject secret the first time):</p>
+<p><code>plexus.sh</code> installs <code>plexus</code> and <code>edc</code>, drops a <code>presence</code> back-compat symlink (so
+pre-rename hooks and units keep resolving), and scaffolds config for both (generating a
+registry token and an inject secret the first time):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/jjuanrivvera/plexus/main/plexus.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
 </code></pre></div>
 <p>It never overwrites an existing config, so it's safe to re-run to upgrade.</p>
 <h3 id="one-at-a-time">One at a time<a class="headerlink" href="#one-at-a-time" title="Permanent link">&para;</a></h3>
 <p>The two binaries are independent — install only what you need:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># plexus (registry + cockpit + launcher; also installs the `plexus` symlink)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># plexus (registry + cockpit + launcher; also drops the `presence` back-compat symlink)</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/jjuanrivvera/plexus/main/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># edc (event injection — usable entirely on its own, no plexus required)</span>
@@ -1081,10 +1082,62 @@ Neither is needed for <code>edc</code> injection on its own.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>claude<span class="w"> </span>plugin<span class="w"> </span>marketplace<span class="w"> </span>add<span class="w"> </span>jjuanrivvera/plexus
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>claude<span class="w"> </span>plugin<span class="w"> </span>install<span class="w"> </span>plexus@jjuanrivvera-plexus
 </code></pre></div>
-<p>Then allow the injection channel by adding it to <code>allowedChannelPlugins</code> in your Claude
-settings (<code>~/.claude/settings.json</code>) — <code>plexus.sh</code> prints the exact snippet:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">&quot;allowedChannelPlugins&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;marketplace&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;jjuanrivvera-plexus&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;plugin&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;plexus&quot;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
+<div class="admonition note">
+<p class="admonition-title">Prefer injection only? Use <code>edc</code> standalone</p>
+<p>If you want event injection without the registry/cockpit, install the <code>edc</code>-alone plugin instead
+(<code>claude plugin install event-driven-claude@jjuanrivvera-edc</code>) and use the matching allowlist
+entry and <code>--channels</code> value below. Everything else on this page is identical — just swap the
+<code>{marketplace, plugin}</code> pair. See the <a href="https://github.com/jjuanrivvera/edc"><code>edc</code> README</a>.</p>
+</div>
+<p>The plugin wires <strong>two things</strong> into a session, and they live in <strong>two different files</strong> — this trips
+everyone up, so it's spelled out:</p>
+<p><strong>1. Hooks (registration) → <code>~/.claude/settings.json</code>.</strong> The install adds the SessionStart/PostToolUse/
+SessionEnd hooks here. This is your normal user settings file.</p>
+<p><strong>2. Channel (injection) → the OS <em>managed-settings</em> file (requires admin).</strong> For an <em>installed</em>
+plugin, Claude Code reads the channel allowlist <strong>only</strong> from managed settings — your
+<code>~/.claude/settings.json</code> is ignored for this by design, so a process running as you can't
+self-authorize an injection channel. Add the plugin to <code>allowedChannelPlugins</code> there (with <code>sudo</code>):</p>
+<table>
+<thead>
+<tr>
+<th>OS</th>
+<th>managed-settings path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>macOS</td>
+<td><code>/Library/Application Support/ClaudeCode/managed-settings.json</code></td>
+</tr>
+<tr>
+<td>Linux</td>
+<td><code>/etc/claude-code/managed-settings.json</code></td>
+</tr>
+<tr>
+<td>Windows</td>
+<td><code>C:\ProgramData\ClaudeCode\managed-settings.json</code></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Linux shown; on macOS use the path above. The value is an ARRAY of {marketplace, plugin} objects.</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>sudo<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/etc/claude-code<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>/etc/claude-code/managed-settings.json<span class="w"> </span>&gt;/dev/null<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="s">{ &quot;allowedChannelPlugins&quot;: [ { &quot;marketplace&quot;: &quot;jjuanrivvera-plexus&quot;, &quot;plugin&quot;: &quot;plexus&quot; } ] }</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="s">JSON</span>
 </code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">The one thing that silently breaks injection</p>
+<p>If the channel allowlist is missing (or you put it in <code>~/.claude/settings.json</code>), <code>/inject</code> still
+returns <code>202</code> but <strong>the turn never arrives</strong> — Claude Code drops it. That <code>202</code>-but-nothing-happens
+dead-end is almost always this. Verify with the plugin's MCP log showing <code>Channel notifications
+registered</code> (vs <code>skipped</code>).</p>
+</div>
+<p><strong>3. Request the channel per session (every launch).</strong> The allowlist alone isn't enough — each session
+must also opt in with <code>--channels</code>. <code>plexus claude</code> does <strong>not</strong> add this for you; pass it through with
+<code>--</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>plexus<span class="w"> </span>claude<span class="w"> </span>~/code/api<span class="w"> </span>--<span class="w"> </span>--channels<span class="w"> </span><span class="s2">&quot;plugin:plexus@jjuanrivvera-plexus&quot;</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># edc-standalone: --channels &quot;plugin:event-driven-claude@jjuanrivvera-edc&quot;</span>
+</code></pre></div>
+<p>A fresh session prints a <code>Channels (experimental) … inject directly</code> line when the capability registered.</p>
 <div class="admonition note">
 <p class="admonition-title">Codex &amp; OpenCode</p>
 <p><strong>Codex</strong> has its own equivalent plugin in the <code>edc</code> repo (<code>.codex-plugin/</code> — registration
@@ -1094,29 +1147,33 @@ hooks + the injection adapter). <strong>OpenCode</strong> isn't a plugin: drop
 </div>
 <h2 id="configure">Configure<a class="headerlink" href="#configure" title="Permanent link">&para;</a></h2>
 <p>Config resolves <strong>flag → env var → <code>~/.config/plexus/env</code></strong> (and <code>~/.config/edc/config.json</code> for edc).</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># ~/.config/plexus/env — every machine</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nv">PLEXUS_URL</span><span class="o">=</span>http://&lt;registry-host&gt;:&lt;port&gt;<span class="w">   </span><span class="c1"># the registry (e.g. http://127.0.0.1:8799 for one machine)</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nv">PLEXUS_TOKEN</span><span class="o">=</span>&lt;shared-secret&gt;<span class="w">             </span><span class="c1"># bearer + cockpit login + terminal proxy auth</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nv">PLEXUS_HOST</span><span class="o">=</span>&lt;label&gt;<span class="w">                      </span><span class="c1"># this machine&#39;s label, e.g. laptop</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># ~/.config/plexus/env — every machine</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">PLEXUS_URL</span><span class="o">=</span>http://&lt;registry-host&gt;:&lt;port&gt;<span class="w">   </span><span class="c1"># the registry (e.g. http://127.0.0.1:8799 for one machine)</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nv">PLEXUS_TOKEN</span><span class="o">=</span>&lt;shared-secret&gt;<span class="w">             </span><span class="c1"># bearer + cockpit login + terminal proxy auth</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nv">PLEXUS_HOST</span><span class="o">=</span>&lt;label&gt;<span class="w">                      </span><span class="c1"># this machine&#39;s label, e.g. laptop</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// ~/.config/edc/config.json — where injection is served</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="p">{</span><span class="w"> </span><span class="nt">&quot;inject_secret&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;secret&gt;&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;inject_port&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;inject_bind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.0.0.0&quot;</span><span class="w"> </span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">// ~/.config/edc/config.json — where injection is served</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="p">{</span><span class="w"> </span><span class="nt">&quot;inject_secret&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;secret&gt;&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;inject_port&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;inject_bind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.0.0.0&quot;</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
-<p><code>inject_bind</code> defaults to <code>127.0.0.1</code> (local injection only). Set it to <code>0.0.0.0</code> to let an
-emitter on another machine reach the session over your private network — the listener stays
-<strong>fail-closed</strong> (no valid secret, no injection), so the bind widens reachability, not trust.
-Bind to a specific private IP instead of <code>0.0.0.0</code> if you want to exclude other local interfaces.</p>
+<p>The <code>edc</code> binary's own default for <code>inject_bind</code>, when the key is absent, is <code>127.0.0.1</code> (local
+injection only). The sample above is what <code>plexus.sh</code> <strong>scaffolds</strong> — <code>0.0.0.0</code>, so cross-machine
+injection works out of the box. That's safe because the listener is <strong>fail-closed</strong> (no valid secret,
+no injection), so the wider bind adds reachability, not trust. For a single machine, or to exclude
+other local interfaces, set it to <code>127.0.0.1</code> or a specific private IP.</p>
 <p>Generate secrets with <code>openssl rand -hex 32</code>. Keep them out of version control.</p>
 <h2 id="run-the-registry">Run the registry<a class="headerlink" href="#run-the-registry" title="Permanent link">&para;</a></h2>
-<p>On the always-on host, run <code>plexus serve</code> as a service. A systemd user unit:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[Service]</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="na">Environment</span><span class="o">=</span><span class="s">PLEXUS_BIND=127.0.0.1:8799</span><span class="w">     </span><span class="c1"># or a private IP:port for multi-machine</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="na">Environment</span><span class="o">=</span><span class="s">PLEXUS_TOKEN=&lt;secret&gt;</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="na">ExecStart</span><span class="o">=</span><span class="s">%h/.local/bin/plexus serve</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
+<p>On the always-on host, run <code>plexus serve</code> as a service. A systemd user unit (pulling the token from
+the env file <code>plexus.sh</code> scaffolded, matching the <a href="https://github.com/jjuanrivvera/plexus#deploy-server">plexus README</a>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">[Service]</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="na">EnvironmentFile</span><span class="o">=</span><span class="s">%h/.config/plexus/env</span><span class="w">      </span><span class="c1"># PLEXUS_URL / PLEXUS_TOKEN / PLEXUS_HOST</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="na">Environment</span><span class="o">=</span><span class="s">PLEXUS_BIND=127.0.0.1:8799</span><span class="w">     </span><span class="c1"># bind address (or a private IP:port for multi-machine)</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="na">ExecStart</span><span class="o">=</span><span class="s">%h/.local/bin/plexus serve</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="na">Restart</span><span class="o">=</span><span class="s">always</span>
 </code></pre></div>
+<p>On <strong>macOS</strong> there's no systemd — run <code>plexus serve</code> under a launchd LaunchAgent (or any process
+manager), with the same env file and command.</p>
 <p>Then, on any dev machine, launch an agent and it appears in the cockpit at <code>PLEXUS_URL/ui</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>plexus<span class="w"> </span>claude<span class="w"> </span>~/code/api
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>plexus<span class="w"> </span>claude<span class="w"> </span>~/code/api
 </code></pre></div>
 <h2 id="portability">Portability<a class="headerlink" href="#portability" title="Permanent link">&para;</a></h2>
 <p><code>plexus</code> is designed for <strong>one developer with a handful of long-lived sessions across machines they own</strong>.

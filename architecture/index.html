@@ -904,8 +904,11 @@
 
 
 <h1 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h1>
-<p>Plexus is two layers over one private network: <strong>plexus</strong> (observe / control / launch) and <strong>edc</strong>
-(inject). Each agent session sits in the middle — registered in plexus, reachable by edc.</p>
+<p>The problem Plexus solves: you run coding-agent sessions on several machines and have no single place
+to see them, reach their terminals, or feed them events. Plexus is two layers over one private network
+that fix exactly that — <strong><code>plexus</code></strong> (observe / control / launch) and <strong><code>edc</code></strong> (inject). An <strong>agent
+session</strong> (one running Claude Code, Codex, or OpenCode) sits in the middle: registered in <code>plexus</code>,
+reachable by <code>edc</code>. (<strong>Plexus</strong> capitalized is the suite; <code>plexus</code> lowercase is one of its two binaries.)</p>
 <h2 id="topology">Topology<a class="headerlink" href="#topology" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TB
   subgraph net["private network — a VPN, a LAN, or one machine"]

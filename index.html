@@ -410,6 +410,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concepts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#two-independent-binaries" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -833,6 +844,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concepts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#two-independent-binaries" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -898,11 +920,13 @@
 
 <h1 id="plexus">Plexus<a class="headerlink" href="#plexus" title="Permanent link">&para;</a></h1>
 <p><strong>One nervous system for your coding agents, across your machines.</strong></p>
-<p><code>plexus</code> is two small, self-hosted Go tools that work together:</p>
+<p><strong>Plexus</strong> lets you watch, steer, and feed events to coding-agent sessions (Claude Code, Codex,
+OpenCode) running across your machines. The suite is <strong>Plexus</strong>; it's two small, self-hosted Go
+binaries that work together — mind the capitalization, one of them is also called <code>plexus</code>:</p>
 <ul>
-<li><strong><a href="plexus/">plexus</a></strong> — the <em>eyes and hands</em>. A session <strong>registry</strong>, a web <strong>cockpit</strong> with each
+<li><strong><a href="plexus/"><code>plexus</code></a></strong> — the <em>eyes and hands</em>. A session <strong>registry</strong>, a web <strong>cockpit</strong> with each
   session's live terminal, and a <strong>launcher</strong> for starting agents you can attach to from anywhere.</li>
-<li><strong><a href="edc/">edc</a></strong> — the <em>input</em>. A uniform <code>/inject</code> endpoint that turns an external event (a cron, a
+<li><strong><a href="edc/"><code>edc</code></a></strong> — the <em>input</em>. A uniform <code>/inject</code> endpoint that turns an external event (a cron, a
   watcher, a Slack message, another agent) into a <strong>turn</strong> inside a running session.</li>
 </ul>
 <p>They're orthogonal and don't know each other's internals — they meet at the session. An event enters a
@@ -912,6 +936,54 @@ live session through <strong>edc</strong>; you watch that session work, type int
   E["event&lt;br/&gt;(cron · watcher · slack)"] --&gt;|edc /inject| S["a live agent session"]
   S --&gt;|register / attach| P["plexus&lt;br/&gt;registry + cockpit"]
   H["you (any device)"] --&gt;|watch · type · interrupt| P</code></pre>
+<h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Permanent link">&para;</a></h2>
+<p>A few load-bearing terms, defined once — they recur across every page:</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>session</strong></td>
+<td>one running coding agent (Claude Code, Codex, or OpenCode)</td>
+</tr>
+<tr>
+<td><strong>turn</strong></td>
+<td>one message a session processes, exactly as if a human had typed it</td>
+</tr>
+<tr>
+<td><strong>inject</strong></td>
+<td>hand a session an external event so it arrives as a turn — <code>edc</code>'s whole job</td>
+</tr>
+<tr>
+<td><strong>channel</strong></td>
+<td>the Claude Code capability (<code>claude/channel</code>) that lets <code>edc</code> push a turn in</td>
+</tr>
+<tr>
+<td><strong>registry</strong></td>
+<td>the list of live sessions <code>plexus serve</code> keeps (one row each)</td>
+</tr>
+<tr>
+<td><strong>cockpit</strong></td>
+<td>the <code>plexus serve</code> web dashboard (<code>/ui</code>): the fleet plus each session's terminal</td>
+</tr>
+<tr>
+<td><strong>attach</strong></td>
+<td>open a session's live terminal — the cockpit reverse-proxies your browser into it</td>
+</tr>
+<tr>
+<td><strong>ttyd</strong></td>
+<td>a terminal-over-HTTP server; Plexus runs one per session so the cockpit can attach</td>
+</tr>
+<tr>
+<td><strong>edc</strong></td>
+<td>"Event-Driven Coding-agents" — the injector binary</td>
+</tr>
+</tbody>
+</table>
 <h2 id="two-independent-binaries">Two independent binaries<a class="headerlink" href="#two-independent-binaries" title="Permanent link">&para;</a></h2>
 <p>Plexus is two tools you can install and run <strong>separately or together</strong> — neither depends on the other:</p>
 <table>
@@ -984,17 +1056,22 @@ event-driven; use <strong>both</strong> to get an injectable, attachable fleet. 
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># the web cockpit (installable PWA)</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>open<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PLEXUS_URL</span><span class="s2">/ui&quot;</span><span class="w">          </span><span class="c1"># sidebar of sessions + each one&#39;s live terminal</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># wake a session with an external event</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://127.0.0.1:</span><span class="nv">$PORT</span><span class="s2">/inject&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$SECRET</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;source&quot;:&quot;cron&quot;,&quot;event&quot;:&quot;nightly&quot;,&quot;text&quot;:&quot;…&quot;}&#39;</span><span class="w">   </span><span class="c1"># → a turn in that session</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># wake a session with an external event — the port comes from that session&#39;s edc</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1"># state file, the secret from ~/.config/edc/config.json</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="nv">PORT</span><span class="o">=</span><span class="k">$(</span>jq<span class="w"> </span>-r<span class="w"> </span>.port<span class="w"> </span>~/.local/state/edc/*.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="k">)</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://127.0.0.1:</span><span class="nv">$PORT</span><span class="s2">/inject&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="k">$(</span>jq<span class="w"> </span>-r<span class="w"> </span>.inject_secret<span class="w"> </span>~/.config/edc/config.json<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;source&quot;:&quot;cron&quot;,&quot;event&quot;:&quot;nightly&quot;,&quot;text&quot;:&quot;…&quot;}&#39;</span><span class="w">   </span><span class="c1"># → a turn in that session</span>
 </code></pre></div>
+<p>See <a href="setup/">Setup</a> for the from-zero install, then <a href="edc/">edc</a> for how injection is wired.</p>
 <h2 id="where-to-go-next">Where to go next<a class="headerlink" href="#where-to-go-next" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong><a href="setup/">Setup &amp; requirements</a></strong> — from one laptop to many machines; the from-zero install.</li>
+<li><strong><a href="plexus/"><code>plexus</code></a></strong> — the registry, cockpit, and launcher in depth.</li>
+<li><strong><a href="edc/"><code>edc</code></a></strong> — how event injection works and how to wire it.</li>
 <li><strong><a href="architecture/">Architecture</a></strong> — how the two tools compose, and the topology.</li>
 <li><strong><a href="agents/">Agents</a></strong> — what each agent supports and how it's wired.</li>
-<li><strong><a href="setup/">Setup &amp; requirements</a></strong> — from one laptop to many machines; what's actually required.</li>
-<li><strong><a href="commands/">Command reference</a></strong> — every <code>plexus</code> / <code>plexus</code> / <code>edc</code> verb.</li>
+<li><strong><a href="commands/">Command reference</a></strong> — every <code>plexus</code> and <code>edc</code> verb.</li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Design intent</p>
