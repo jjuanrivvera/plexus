@@ -1,4 +1,12 @@
-# plexus
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/plexus-mark-ondark.svg">
+    <img alt="Plexus" src="docs/assets/plexus-mark-onlight.svg" width="104" height="104">
+  </picture>
+</p>
+
+<h1 align="center">plexus</h1>
+<p align="center"><em>the eyes and hands of Plexus · la malla</em></p>
 
 **Plexus — the eyes and hands.** One Go binary (installed as `plexus`) that does three
 things for coding-agent sessions — Claude Code, Codex, or OpenCode — across your machines:

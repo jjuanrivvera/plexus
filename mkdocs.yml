@@ -7,6 +7,8 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
+  logo: assets/plexus-mark-ondark.svg
+  favicon: assets/plexus-favicon.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default

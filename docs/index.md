@@ -1,3 +1,9 @@
+<p align="center" style="margin:.4rem 0 1.2rem;">
+  <span style="display:inline-flex;padding:20px 26px;border-radius:18px;background:#0b0d10;box-shadow:0 1px 0 rgba(224,164,74,.15) inset;">
+    <img src="assets/plexus-mark-ondark.svg" alt="Plexus" width="84" height="84">
+  </span>
+</p>
+
 # Plexus
 
 **One nervous system for your coding agents, across your machines.**
