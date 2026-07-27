@@ -36,8 +36,8 @@ cat ~/.config/plexus/env        # PLEXUS_URL=http://127.0.0.1:8799, PLEXUS_TOKEN
 # 3. run the registry (fails closed without PLEXUS_TOKEN, which the env file supplies)
 plexus serve --bind 127.0.0.1:8799 &
 
-# 4. launch an agent into the cockpit
-plexus claude ~/code/api
+# 4. launch an agent into the cockpit (agent flags pass straight through)
+plexus claude ~/code/api --dangerously-skip-permissions
 
 # 5. open the cockpit (xdg-open on Linux)
 open "$PLEXUS_URL/ui"

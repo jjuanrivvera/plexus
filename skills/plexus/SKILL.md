@@ -51,10 +51,13 @@ Launcher details:
 - **`dir` defaults to the current directory.** The session name is the git repo
   basename (or the dir basename).
 - **`--detach`** creates the session without attaching — for background /
-  headless agents: `plexus claude --detach <dir> -- <agent-args>`.
-- **`--`** passes the rest through to the agent, e.g. skip an interactive
+  headless agents: `plexus claude --detach <dir> <agent-args>`.
+- **Agent flags pass through** with no separator, e.g. to skip an interactive
   first-run trust prompt in a fresh directory:
-  `plexus claude --detach <dir> -- --dangerously-skip-permissions`.
+  `plexus claude --detach <dir> --dangerously-skip-permissions`. The first flag
+  plexus doesn't own ends plexus's own parsing, so its flags (`--detach`,
+  `--worktree`) and `dir` come **first** and everything after goes to the agent
+  verbatim. `--` still works as an explicit separator.
 - **Re-running `plexus claude <same-dir>` reattaches** instead of starting a
   second agent.
 

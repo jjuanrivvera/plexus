@@ -4,10 +4,12 @@
 // `plexus launch` always creates a session on the shared `plexus` socket, which
 // the SessionStart hook then wires for attach automatically.
 //
-//	plexus launch <claude|codex|opencode> [dir] [--detach] [--worktree] [-- args…]
+//	plexus launch <claude|codex|opencode> [dir] [--detach] [--worktree] [agent args…]
 //	plexus attach <name>
 //
 // Ergonomic aliases (also via the `plexus` symlink): `plexus claude [dir]`.
+// Anything plexus doesn't own is forwarded to the agent, e.g.
+// `plexus claude --dangerously-skip-permissions`.
 package main
 
 import (
@@ -136,7 +138,11 @@ func execTmuxAttach(sock, name string) {
 }
 
 func cmdLaunch(args []string) {
-	// args[0] is the agent; then optional [dir], [--detach], [--worktree], and [-- extra…].
+	// args[0] is the agent; then optional [dir], [--detach], [--worktree], and agent args.
+	// Agent flags need no `--`: the first token plexus doesn't own (any unknown `-flag`)
+	// ends plexus's parsing, and it plus everything after go to the agent verbatim — so
+	// `plexus claude --dangerously-skip-permissions` reaches Claude instead of being read
+	// as a directory. Plexus's own flags and [dir] must therefore come first.
 	var agent, dir string
 	var detach, worktree bool
 	var extra []string
@@ -150,6 +156,9 @@ func cmdLaunch(args []string) {
 			detach = true
 		case a == "--worktree" || a == "-w":
 			worktree = true
+		case strings.HasPrefix(a, "-") && a != "-":
+			extra = append(extra, args[i:]...)
+			i = len(args)
 		case agent == "":
 			agent = a
 		case dir == "":

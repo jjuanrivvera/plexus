@@ -26,10 +26,22 @@ The ergonomic verbs for starting sessions and reaching them — the ones you typ
 |---|---|
 | `[dir]` | working directory (default: cwd); the session name is the repo basename |
 | `--detach` | create the session without attaching — background / headless agents |
-| `-- <args…>` | pass the rest to the agent, e.g. `-- --dangerously-skip-permissions` |
+| `--worktree` | run the session in a fresh git worktree + branch, isolated from other agents |
+| `<agent args…>` | anything plexus doesn't own goes to the agent, e.g. `plexus claude --dangerously-skip-permissions` |
 
 `dir` defaults to the current directory; re-running for a dir that's already open **reattaches** instead
 of duplicating.
+
+Agent flags need no separator, but they end plexus's own parsing — like `docker run [opts] image
+[args…]`, plexus's flags and `dir` come **first**, everything from the first unknown flag on is the
+agent's:
+
+```bash
+plexus claude --dangerously-skip-permissions        # flag reaches Claude
+plexus claude ~/repo --detach --model opus          # dir + plexus flag first, then agent flags
+plexus claude --model opus --detach                 # --detach goes to Claude, NOT to plexus
+plexus claude -- --detach                           # explicit separator, same as above
+```
 
 ## `plexus` — registry & server
 
@@ -43,7 +55,7 @@ plexus list       [--host H] [--repo R] [--agent A] [--fresh 2m] [-o json|table]
 plexus get        --repo R [--host laptop,server] [--agent A] [--fresh 2m] [-o json]
 plexus watch      [-n 2]
 plexus prune      [--older-than 10m]
-plexus launch     <claude|codex|opencode> [dir] [--detach] [-- args…]
+plexus launch     <claude|codex|opencode> [dir] [--detach] [--worktree] [agent args…]
 plexus attach     <name>
 plexus kill       <name>
 plexus ttyd       spawn <sid> <tmux-session> [socket] | kill <sid> | reap

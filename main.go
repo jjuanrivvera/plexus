@@ -93,7 +93,7 @@ Usage:
   plexus watch      [-n 2]     # live full-screen Plexus cockpit (blocked-first, colored)
   plexus get        --repo R [--host mac,pc] [--fresh 2m] [-o json]
   plexus prune      [--older-than 10m]
-  plexus launch     <claude|codex|opencode> [dir] [--detach] [--worktree] [-- args…]   # start agent in tmux, attachable
+  plexus launch     <claude|codex|opencode> [dir] [--detach] [--worktree] [agent args…]   # start agent in tmux, attachable
   plexus attach     <name>     # reattach to a Plexus session (also: plexus claude [dir])
   plexus kill       <name>     # end a Plexus session (kills the agent + its terminal)
   plexus ttyd       spawn <sid> <tmux-session> [socket] | kill <sid> | reap

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.1
+
+- **Launcher forwards agent flags without `--`**: `plexus claude --dangerously-skip-permissions`
+  now reaches the agent instead of failing with `"…" is not a directory`. The first flag plexus
+  doesn't own ends plexus's own parsing — like `docker run`, plexus's flags and `[dir]` come first,
+  everything after goes to the agent verbatim. The explicit `--` separator still works.
+
 ## v0.5.0
 
 **The binary, repo, and module are now `plexus`.** What was the `presence` binary is now
