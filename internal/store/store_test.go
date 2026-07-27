@@ -111,7 +111,7 @@ func TestHeartbeat(t *testing.T) {
 				}
 			}
 			setNow(st, t0.Add(30*time.Second))
-			found, err := st.Heartbeat("s1", tt.state)
+			found, err := st.Heartbeat("s1", tt.state, 0)
 			if err != nil {
 				t.Fatalf("Heartbeat: %v", err)
 			}
@@ -126,6 +126,40 @@ func TestHeartbeat(t *testing.T) {
 				if rows[0].State != tt.state {
 					t.Errorf("state = %q, want %q", rows[0].State, tt.state)
 				}
+			}
+		})
+	}
+}
+
+// A heartbeat may carry the inject port because the injector can come up after the
+// SessionStart register — but it must never clear a port it failed to discover.
+func TestHeartbeatInjectPort(t *testing.T) {
+	tests := []struct {
+		name     string
+		start    int // inject_port at register time
+		beat     int // inject_port carried by the heartbeat
+		wantPort int
+	}{
+		{"claims port when registered without one", 0, 9100, 9100},
+		{"updates a port that changed", 8801, 9100, 9100},
+		{"zero keeps the stored port", 8801, 0, 8801},
+		{"zero on a portless row stays zero", 0, 0, 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			st := openTestStore(t)
+			sess := baseSession("s1")
+			sess.InjectPort = tt.start
+			if err := st.Upsert(sess); err != nil {
+				t.Fatalf("Upsert: %v", err)
+			}
+			found, err := st.Heartbeat("s1", "busy", tt.beat)
+			if err != nil || !found {
+				t.Fatalf("Heartbeat: found=%v err=%v", found, err)
+			}
+			rows, _ := st.List("", "", "", time.Hour)
+			if rows[0].InjectPort != tt.wantPort {
+				t.Errorf("inject_port = %d, want %d", rows[0].InjectPort, tt.wantPort)
 			}
 		})
 	}

@@ -290,14 +290,19 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		SessionID string `json:"session_id"`
-		State     string `json:"state"`
+		SessionID  string `json:"session_id"`
+		State      string `json:"state"`
+		InjectPort int    `json:"inject_port"`
 	}
 	if !decodeBody(w, r, &req) {
 		return
 	}
 	if !sessionIDRe.MatchString(req.SessionID) {
 		writeErr(w, http.StatusBadRequest, "session_id: required, 1-128 chars [A-Za-z0-9._-]")
+		return
+	}
+	if req.InjectPort < 0 || req.InjectPort > 65535 {
+		writeErr(w, http.StatusBadRequest, "inject_port: must be 0-65535")
 		return
 	}
 	if req.State == "" {
@@ -309,7 +314,7 @@ func (s *Server) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "state: must be busy, idle, or blocked")
 		return
 	}
-	found, err := s.store.Heartbeat(req.SessionID, req.State)
+	found, err := s.store.Heartbeat(req.SessionID, req.State, req.InjectPort)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "store error")
 		return

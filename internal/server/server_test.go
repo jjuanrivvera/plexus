@@ -140,6 +140,55 @@ func TestRegisterValidation(t *testing.T) {
 	}
 }
 
+// A session that registered before its injector was up must become routable via
+// /get once a heartbeat carries the discovered port — and must not lose it to a
+// later heartbeat that couldn't discover one.
+func TestHeartbeatClaimsInjectPort(t *testing.T) {
+	ts := newTestServer(t)
+	auth := "Bearer " + testToken
+
+	resp := doReq(t, ts, http.MethodPost, "/register", auth,
+		`{"session_id":"abc-123","host":"mac","repo":"myrepo","inject_port":0}`)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("register status = %d, want 200", resp.StatusCode)
+	}
+	if resp := doReq(t, ts, http.MethodGet, "/get?repo=myrepo", auth, ""); resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("portless get status = %d, want 204", resp.StatusCode)
+	}
+
+	if resp := doReq(t, ts, http.MethodPost, "/heartbeat", auth,
+		`{"session_id":"abc-123","state":"busy","inject_port":9100}`); resp.StatusCode != http.StatusOK {
+		t.Fatalf("heartbeat status = %d, want 200", resp.StatusCode)
+	}
+	// A follow-up heartbeat without a port must leave 9100 in place.
+	if resp := doReq(t, ts, http.MethodPost, "/heartbeat", auth,
+		`{"session_id":"abc-123","state":"idle"}`); resp.StatusCode != http.StatusOK {
+		t.Fatalf("second heartbeat status = %d, want 200", resp.StatusCode)
+	}
+
+	resp = doReq(t, ts, http.MethodGet, "/get?repo=myrepo", auth, "")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("get status = %d, want 200", resp.StatusCode)
+	}
+	var row store.Session
+	if err := json.NewDecoder(resp.Body).Decode(&row); err != nil {
+		t.Fatalf("decode row: %v", err)
+	}
+	if row.InjectPort != 9100 {
+		t.Errorf("inject_port = %d, want 9100", row.InjectPort)
+	}
+}
+
+func TestHeartbeatRejectsBadInjectPort(t *testing.T) {
+	ts := newTestServer(t)
+	auth := "Bearer " + testToken
+	resp := doReq(t, ts, http.MethodPost, "/heartbeat", auth,
+		`{"session_id":"abc-123","inject_port":70000}`)
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", resp.StatusCode)
+	}
+}
+
 func TestHeartbeatUnknownSession404(t *testing.T) {
 	ts := newTestServer(t)
 	auth := "Bearer " + testToken

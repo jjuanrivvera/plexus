@@ -111,9 +111,20 @@ func (s *Store) Upsert(sess Session) error {
 }
 
 // Heartbeat bumps last_seen and state. Returns false if the session does not exist.
-func (s *Store) Heartbeat(sessionID, state string) (bool, error) {
-	res, err := s.db.Exec(`UPDATE sessions SET last_seen=?, state=? WHERE session_id=?`,
-		s.stamp(), state, sessionID)
+//
+// injectPort > 0 also (re)claims injectability: the port is only discoverable once the
+// session's injector is up, which can happen *after* the SessionStart register — without
+// this, a session that raced its injector stayed inject_port=0 for its whole life, so
+// `plexus get` never routed to it. A zero port never clears a good one: a hook that
+// momentarily fails to discover the port must not cost the session its injectability.
+func (s *Store) Heartbeat(sessionID, state string, injectPort int) (bool, error) {
+	q := `UPDATE sessions SET last_seen=?, state=? WHERE session_id=?`
+	args := []any{s.stamp(), state, sessionID}
+	if injectPort > 0 {
+		q = `UPDATE sessions SET last_seen=?, state=?, inject_port=? WHERE session_id=?`
+		args = []any{s.stamp(), state, injectPort, sessionID}
+	}
+	res, err := s.db.Exec(q, args...)
 	if err != nil {
 		return false, err
 	}

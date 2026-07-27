@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.2
+
+- **A heartbeat can now claim the inject port**, so sessions stop being silently unroutable.
+  `inject_port` was only ever written by the SessionStart `register`, but the port is only
+  discoverable once the session's injector is up — a session that raced its injector stayed
+  `inject_port=0` for its whole life and `plexus get` never routed to it, even though the hooks
+  were discovering the port correctly on every heartbeat. `POST /heartbeat` now accepts an
+  optional `inject_port`: non-zero claims or updates it, zero leaves the stored port alone (a
+  hook that momentarily fails to discover it must not cost the session its injectability).
+  Old clients (no field) and old servers (ignore it) both stay compatible.
+
 ## v0.5.1
 
 - **Launcher forwards agent flags without `--`**: `plexus claude --dangerously-skip-permissions`

@@ -103,7 +103,7 @@ compare). Bodies are JSON, capped at 16 KiB. Errors are `{"ok":false,"error":"..
 | Method · route | Body / query | Effect |
 |---|---|---|
 | `POST /register` | `{session_id, host, repo, repo_path, branch, inject_port, pid, agent?}` | Upsert; `started_at` set on first insert, `last_seen` always; state forced `busy`; `agent` defaults `claude` |
-| `POST /heartbeat` | `{session_id, state?}` | Bump `last_seen`; `state` defaults `busy`; **404** if unknown |
+| `POST /heartbeat` | `{session_id, state?, inject_port?}` | Bump `last_seen`; `state` defaults `busy`; a non-zero `inject_port` claims/updates injectability (zero never clears it); **404** if unknown |
 | `POST /deregister` | `{session_id}` | Delete row (idempotent) |
 | `GET /list?host=&repo=&agent=&fresh=` | — | Live rows; exact filters; `fresh` Go duration, default `120s` |
 | `GET /get?repo=&host=&agent=&fresh=` | — | Delegation query: freshest row matching `repo` (required) + `host` (optional CSV = OR) + `agent` (optional) with `inject_port>0`; `200 {row}` or `204` |

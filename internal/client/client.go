@@ -99,9 +99,14 @@ func (c *Client) Register(req RegisterReq) error {
 // e.g. the Mac slept past the TTL) it re-registers with reg and retries the
 // heartbeat once, so long-lived sessions survive suspends unattended.
 func (c *Client) Heartbeat(sessionID, state string, reg RegisterReq) error {
-	body := map[string]string{"session_id": sessionID}
+	body := map[string]any{"session_id": sessionID}
 	if state != "" {
 		body["state"] = state
+	}
+	// Carry the inject port so a session whose injector came up after SessionStart
+	// still becomes routable; the server ignores a zero and keeps the stored port.
+	if reg.InjectPort > 0 {
+		body["inject_port"] = reg.InjectPort
 	}
 	resp, err := c.post("/heartbeat", body)
 	if err != nil {
