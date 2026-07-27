@@ -963,37 +963,49 @@ vocabulary? See <a href="../#concepts">Concepts</a>.</p>
 <td>create the session without attaching — background / headless agents</td>
 </tr>
 <tr>
-<td><code>-- &lt;args…&gt;</code></td>
-<td>pass the rest to the agent, e.g. <code>-- --dangerously-skip-permissions</code></td>
+<td><code>--worktree</code></td>
+<td>run the session in a fresh git worktree + branch, isolated from other agents</td>
+</tr>
+<tr>
+<td><code>&lt;agent args…&gt;</code></td>
+<td>anything plexus doesn't own goes to the agent, e.g. <code>plexus claude --dangerously-skip-permissions</code></td>
 </tr>
 </tbody>
 </table>
 <p><code>dir</code> defaults to the current directory; re-running for a dir that's already open <strong>reattaches</strong> instead
 of duplicating.</p>
+<p>Agent flags need no separator, but they end plexus's own parsing — like <code>docker run [opts] image
+[args…]</code>, plexus's flags and <code>dir</code> come <strong>first</strong>, everything from the first unknown flag on is the
+agent's:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>plexus<span class="w"> </span>claude<span class="w"> </span>--dangerously-skip-permissions<span class="w">        </span><span class="c1"># flag reaches Claude</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>plexus<span class="w"> </span>claude<span class="w"> </span>~/repo<span class="w"> </span>--detach<span class="w"> </span>--model<span class="w"> </span>opus<span class="w">          </span><span class="c1"># dir + plexus flag first, then agent flags</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>plexus<span class="w"> </span>claude<span class="w"> </span>--model<span class="w"> </span>opus<span class="w"> </span>--detach<span class="w">                 </span><span class="c1"># --detach goes to Claude, NOT to plexus</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>plexus<span class="w"> </span>claude<span class="w"> </span>--<span class="w"> </span>--detach<span class="w">                           </span><span class="c1"># explicit separator, same as above</span>
+</code></pre></div>
 <h2 id="plexus-registry-server"><code>plexus</code> — registry &amp; server<a class="headerlink" href="#plexus-registry-server" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>plexus serve      [--bind ADDR] [--db PATH] [--ttl 300s]
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>plexus register   [--session-id ID] [--agent claude|codex|opencode] [--inject-port N]
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                    [--attach-addr HOST:PORT] [--host LABEL]
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>plexus heartbeat  [--session-id ID] [--state busy|idle|blocked]
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>plexus deregister [--session-id ID]
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>plexus list       [--host H] [--repo R] [--agent A] [--fresh 2m] [-o json|table]
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>plexus get        --repo R [--host laptop,server] [--agent A] [--fresh 2m] [-o json]
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>plexus watch      [-n 2]
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>plexus prune      [--older-than 10m]
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>plexus launch     &lt;claude|codex|opencode&gt; [dir] [--detach] [-- args…]
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>plexus attach     &lt;name&gt;
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>plexus kill       &lt;name&gt;
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>plexus ttyd       spawn &lt;sid&gt; &lt;tmux-session&gt; [socket] | kill &lt;sid&gt; | reap
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>plexus version
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>plexus serve      [--bind ADDR] [--db PATH] [--ttl 300s]
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>plexus register   [--session-id ID] [--agent claude|codex|opencode] [--inject-port N]
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>                    [--attach-addr HOST:PORT] [--host LABEL]
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>plexus heartbeat  [--session-id ID] [--state busy|idle|blocked]
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>plexus deregister [--session-id ID]
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>plexus list       [--host H] [--repo R] [--agent A] [--fresh 2m] [-o json|table]
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>plexus get        --repo R [--host laptop,server] [--agent A] [--fresh 2m] [-o json]
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>plexus watch      [-n 2]
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>plexus prune      [--older-than 10m]
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>plexus launch     &lt;claude|codex|opencode&gt; [dir] [--detach] [--worktree] [agent args…]
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>plexus attach     &lt;name&gt;
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>plexus kill       &lt;name&gt;
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>plexus ttyd       spawn &lt;sid&gt; &lt;tmux-session&gt; [socket] | kill &lt;sid&gt; | reap
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>plexus version
 </code></pre></div>
 <p><code>plexus get</code> is the routing query: the freshest <strong>injectable</strong> session for a repo. Exit <code>1</code> + empty
 output when there's no match, so it scripts cleanly.</p>
 <p><strong>Server config</strong> (<code>plexus serve</code>): <code>PLEXUS_BIND</code>, <code>PLEXUS_TTL</code>, <code>PLEXUS_TOKEN</code>. <strong>Client config:</strong>
 <code>PLEXUS_URL</code>, <code>PLEXUS_TOKEN</code>, <code>PLEXUS_HOST</code>. Precedence: flag → env → <code>~/.config/plexus/env</code>.</p>
 <h2 id="edc-event-injection"><code>edc</code> — event injection<a class="headerlink" href="#edc-event-injection" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>edc                    # default: the Claude Code channel MCP stdio server
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>edc codex serve        # front a codex app-server thread, serve /inject
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>edc opencode serve     # front an opencode server, serve /inject
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>edc                    # default: the Claude Code channel MCP stdio server
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>edc codex serve        # front a codex app-server thread, serve /inject
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>edc opencode serve     # front an opencode server, serve /inject
 </code></pre></div>
 <p><strong>Config</strong> — env or <code>~/.config/edc/config.json</code>:</p>
 <table>
@@ -1031,14 +1043,14 @@ output when there's no match, so it scripts cleanly.</p>
 </tbody>
 </table>
 <p><strong>Inject an event:</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://127.0.0.1:</span><span class="nv">$PORT</span><span class="s2">/inject&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$EDC_INJECT_SECRET</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;source&quot;:&quot;cron&quot;,&quot;event&quot;:&quot;nightly&quot;,&quot;text&quot;:&quot;run the report&quot;}&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="s2">&quot;http://127.0.0.1:</span><span class="nv">$PORT</span><span class="s2">/inject&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$EDC_INJECT_SECRET</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;source&quot;:&quot;cron&quot;,&quot;event&quot;:&quot;nightly&quot;,&quot;text&quot;:&quot;run the report&quot;}&#39;</span>
 </code></pre></div>
 <h2 id="the-plexus-skill">The <code>plexus</code> skill<a class="headerlink" href="#the-plexus-skill" title="Permanent link">&para;</a></h2>
 <p>Install the agent skill that teaches an agent to drive Plexus:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>npx<span class="w"> </span>skills<span class="w"> </span>add<span class="w"> </span>jjuanrivvera/plexus<span class="w">          </span><span class="c1"># into this project</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>npx<span class="w"> </span>skills<span class="w"> </span>add<span class="w"> </span>jjuanrivvera/plexus<span class="w"> </span>--global<span class="w"> </span><span class="c1"># for all projects</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>npx<span class="w"> </span>skills<span class="w"> </span>add<span class="w"> </span>jjuanrivvera/plexus<span class="w">          </span><span class="c1"># into this project</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>npx<span class="w"> </span>skills<span class="w"> </span>add<span class="w"> </span>jjuanrivvera/plexus<span class="w"> </span>--global<span class="w"> </span><span class="c1"># for all projects</span>
 </code></pre></div>
 
 
