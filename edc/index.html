@@ -956,6 +956,11 @@ be authorized, see <a href="#deploying-an-injectable-session">Deploying an injec
 </table>
 <p>The listener <strong>fails closed</strong>: no <code>EDC_INJECT_SECRET</code>, no listener. The port is published into plexus as
 <code>inject_port</code>, so an injectable session is discoverable exactly like any other.</p>
+<p>edc binds <code>inject_port: "auto"</code> lazily, which can race the SessionStart register — a session that
+registers first would sit at <code>inject_port=0</code>. plexus closes the race off-hook: <code>plexus heartbeat</code>
+re-reads edc's state dir (files named <code>pid-&lt;edcpid&gt;.json</code>) and reclaims the port for the injector
+that descends from the session's agent, and the keepalive drives that heartbeat for idle detached
+sessions. So an injectable session becomes routable within a keepalive tick even with no tool calls.</p>
 <h2 id="the-receiver-differs-per-agent">The receiver differs per agent<a class="headerlink" href="#the-receiver-differs-per-agent" title="Permanent link">&para;</a></h2>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Claude Code</label><label for="__tabbed_1_2">Codex</label><label for="__tabbed_1_3">OpenCode</label></div>
 <div class="tabbed-content">
