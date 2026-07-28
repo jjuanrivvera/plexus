@@ -42,6 +42,12 @@ be authorized, see [Deploying an injectable session](#deploying-an-injectable-se
 The listener **fails closed**: no `EDC_INJECT_SECRET`, no listener. The port is published into plexus as
 `inject_port`, so an injectable session is discoverable exactly like any other.
 
+edc binds `inject_port: "auto"` lazily, which can race the SessionStart register — a session that
+registers first would sit at `inject_port=0`. plexus closes the race off-hook: `plexus heartbeat`
+re-reads edc's state dir (files named `pid-<edcpid>.json`) and reclaims the port for the injector
+that descends from the session's agent, and the keepalive drives that heartbeat for idle detached
+sessions. So an injectable session becomes routable within a keepalive tick even with no tool calls.
+
 ## The receiver differs per agent
 
 === "Claude Code"

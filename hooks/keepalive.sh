@@ -31,10 +31,13 @@ for f in "$SDIR"/*; do
     ESTATE="$HOME/.local/state/edc/$SID.json"
     [ -f "$ESTATE" ] && EDCP=$(sed -n 's/.*"port":\([0-9]*\).*/\1/p' "$ESTATE")
   fi
+  # Pass the agent pid (mapping line 1) so plexus can reclaim the edc inject port
+  # off-hook: an idle detached session never fires PostToolUse, so this heartbeat
+  # is the only thing that re-reads edc's state file and re-publishes inject_port.
   (
     [ -d "$CWD" ] && cd "$CWD" 2>/dev/null
     [ -n "$EDCP" ] && export EDC_INJECT_PORT="$EDCP"
-    "$BIN" heartbeat --session-id "$SID" --state idle >/dev/null 2>&1 || true
+    "$BIN" heartbeat --session-id "$SID" --state idle --claude-pid "$PID" >/dev/null 2>&1 || true
   )
 done
 exit 0

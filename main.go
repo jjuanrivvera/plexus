@@ -217,7 +217,7 @@ func newClientCtx(sessionIDFlag, hostFlag string, needSession bool) clientCtx {
 // buildRegisterReq captures the launch cwd once: repo/branch/repo_path are
 // deliberately NOT refreshed mid-session (a session belongs to the dir it
 // opened in).
-func buildRegisterReq(cc clientCtx, injectPort int, agent, attachAddr string) client.RegisterReq {
+func buildRegisterReq(cc clientCtx, injectPort int, agent, attachAddr string, claudePID int) client.RegisterReq {
 	cwd, err := os.Getwd()
 	if err != nil {
 		cwd = "."
@@ -226,12 +226,24 @@ func buildRegisterReq(cc clientCtx, injectPort int, agent, attachAddr string) cl
 	if repoPath == "" {
 		repoPath = cwd
 	}
+	// claudePID is the session's agent process: os.Getppid() for a hook Claude
+	// spawned, or the mapping's stored pid when the keepalive drives the heartbeat
+	// (there the parent is the keepalive shell, not the agent).
+	if claudePID <= 0 {
+		claudePID = os.Getppid()
+	}
 	if injectPort == 0 {
 		if v := os.Getenv("EDC_INJECT_PORT"); v != "" {
 			if p, err := strconv.Atoi(v); err == nil {
 				injectPort = p
 			}
 		}
+	}
+	// Env is empty when the session registered before edc bound its port (the race
+	// behind inject_port=0). Re-read edc's state file so a heartbeat reclaims the
+	// port and the session becomes injectable a beat after edc comes up.
+	if injectPort == 0 {
+		injectPort = injectPortFromEDCDefault(claudePID)
 	}
 	// Agent resolves flag -> $PLEXUS_AGENT -> "" (server defaults empty to "claude"). The env
 	// fallback lets heartbeat's 404 re-register preserve the agent without re-passing the flag.
@@ -254,7 +266,7 @@ func buildRegisterReq(cc clientCtx, injectPort int, agent, attachAddr string) cl
 		RepoPath:   repoPath,
 		Branch:     branch,
 		InjectPort: injectPort,
-		PID:        os.Getppid(),
+		PID:        claudePID,
 		Agent:      agent,
 		AttachAddr: attachAddr,
 	}
@@ -272,7 +284,7 @@ func cmdRegister(args []string) {
 	fs.Parse(args)
 
 	cc := newClientCtx(*sessionID, *hostFlag, true)
-	if err := cc.cli.Register(buildRegisterReq(cc, *injectPort, *agent, *attachAddr)); err != nil {
+	if err := cc.cli.Register(buildRegisterReq(cc, *injectPort, *agent, *attachAddr, 0)); err != nil {
 		fatal("register: %v", err)
 	}
 	fmt.Println("ok")
@@ -283,6 +295,7 @@ func cmdHeartbeat(args []string) {
 	sessionID := fs.String("session-id", "", "session id (default $CLAUDE_SESSION_ID)")
 	state := fs.String("state", "", "busy|idle (default busy)")
 	hostFlag := fs.String("host", "", "machine label (default $PLEXUS_HOST)")
+	claudePID := fs.Int("claude-pid", 0, "agent process pid, so the edc inject port can be reclaimed off-hook (default: parent pid)")
 	fs.Parse(args)
 
 	if *state != "" && *state != "busy" && *state != "idle" && *state != "blocked" {
@@ -290,8 +303,9 @@ func cmdHeartbeat(args []string) {
 	}
 	cc := newClientCtx(*sessionID, *hostFlag, true)
 	// The register payload doubles as the 404 recovery path (server pruned us); agent comes
-	// from $PLEXUS_AGENT so a recovered codex row keeps its kind.
-	if err := cc.cli.Heartbeat(cc.sessionID, *state, buildRegisterReq(cc, 0, "", "")); err != nil {
+	// from $PLEXUS_AGENT so a recovered codex row keeps its kind. --claude-pid lets the
+	// keepalive point discovery at the real agent process (its own parent is the timer shell).
+	if err := cc.cli.Heartbeat(cc.sessionID, *state, buildRegisterReq(cc, 0, "", "", *claudePID)); err != nil {
 		fatal("heartbeat: %v", err)
 	}
 	fmt.Println("ok")

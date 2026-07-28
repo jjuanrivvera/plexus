@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **The keepalive now reclaims a detached session's inject port** (fixes #1). The v0.5.2
+  heartbeat could carry an `inject_port`, but nothing off the busy path re-discovered it: an
+  idle `--detach` session never fires PostToolUse, so a session that registered before its edc
+  injector bound stayed `inject_port=0`, was invisible to `plexus get`, got no inject, and was
+  TTL-pruned. `plexus heartbeat` now re-reads edc's state dir itself — edc names its state file
+  `pid-<edcpid>.json`, so plexus matches the one whose live process descends from the session's
+  agent pid — and the keepalive passes `--claude-pid` (the agent pid it already tracks) so the
+  off-hook heartbeat can find it. The session becomes injectable on the first keepalive tick,
+  before the TTL. Port discovery lives in `edc.go` with injectable process seams and unit tests.
+  (Auto-provisioning the keepalive timer from `--detach` — suggested fix #3 — is left as a
+  separate follow-up: it's OS-specific install surface and belongs with the deploy scripts.)
+
 ## v0.5.2
 
 - **A heartbeat can now claim the inject port**, so sessions stop being silently unroutable.
