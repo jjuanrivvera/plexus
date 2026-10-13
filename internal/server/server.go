@@ -192,11 +192,11 @@ func (s *Server) handleAttach(w http.ResponseWriter, r *http.Request) {
 	basic := "Basic " + base64.StdEncoding.EncodeToString([]byte("plexus:"+s.token))
 	proxy := &httputil.ReverseProxy{
 		FlushInterval: -1, // stream terminal output as it arrives
-		Director: func(req *http.Request) {
-			req.URL.Scheme = "http"
-			req.URL.Host = host
-			req.Host = host
-			req.Header.Set("Authorization", basic)
+		Rewrite: func(pr *httputil.ProxyRequest) {
+			pr.Out.URL.Scheme = "http"
+			pr.Out.URL.Host = host
+			pr.Out.Host = host
+			pr.Out.Header.Set("Authorization", basic)
 		},
 		ErrorHandler: func(w http.ResponseWriter, _ *http.Request, _ error) {
 			writeErr(w, http.StatusBadGateway, "attach upstream unreachable")
