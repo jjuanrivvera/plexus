@@ -1,6 +1,6 @@
 module github.com/jjuanrivvera/plexus
 
-go 1.25.5
+go 1.26.9
 
 require modernc.org/sqlite v1.53.0
 

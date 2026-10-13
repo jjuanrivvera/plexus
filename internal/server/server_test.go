@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -240,5 +241,42 @@ func TestBodyTooLargeRejected(t *testing.T) {
 	resp := doReq(t, ts, http.MethodPost, "/register", auth, big)
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400", resp.StatusCode)
+	}
+}
+
+func TestAttachProxiesToSessionTerminal(t *testing.T) {
+	var gotPath, gotHost, gotAuth string
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath, gotHost, gotAuth = r.URL.RequestURI(), r.Host, r.Header.Get("Authorization")
+		io.WriteString(w, "ttyd")
+	}))
+	t.Cleanup(upstream.Close)
+	upstreamAddr := strings.TrimPrefix(upstream.URL, "http://")
+
+	st, err := store.Open(filepath.Join(t.TempDir(), "plexus.db"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { st.Close() })
+	if err := st.Upsert(store.Session{SessionID: "s1", Host: "pc", AttachAddr: upstreamAddr}); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	ts := httptest.NewServer(New(st, testToken, 5*time.Minute).Handler())
+	t.Cleanup(ts.Close)
+
+	resp := doReq(t, ts, http.MethodGet, "/attach/s1/token?x=1", "Bearer "+testToken, "")
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK || string(body) != "ttyd" {
+		t.Fatalf("got %d %q, want 200 \"ttyd\"", resp.StatusCode, body)
+	}
+	if gotPath != "/attach/s1/token?x=1" {
+		t.Errorf("upstream path = %q, want it passed through unrewritten", gotPath)
+	}
+	if gotHost != upstreamAddr {
+		t.Errorf("upstream Host = %q, want %q", gotHost, upstreamAddr)
+	}
+	// The browser's plexus token must not reach ttyd; ttyd gets its own basic auth.
+	if want := "Basic " + base64.StdEncoding.EncodeToString([]byte("plexus:"+testToken)); gotAuth != want {
+		t.Errorf("upstream Authorization = %q, want %q", gotAuth, want)
 	}
 }
